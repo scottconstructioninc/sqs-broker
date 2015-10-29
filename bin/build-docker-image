@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -e
+
+echo -e "\n Cleaning SQS Service Broker Docker image..."
+docker rmi cfplatformeng/sqs-broker || true
+
+echo -e "\n Cleaning Builder Docker image..."
+docker rmi cfplatformeng/sqs-broker-builder || true
+
+echo -e "\n Creating Builder Docker image..."
+docker build -t cfplatformeng/sqs-broker-builder .
+
+echo -e "\n Creating SQS Service Broker Docker image..."
+docker run -ti --rm --name sqs-broker-builder \
+       -e DOCKER_HOST=${DOCKER_HOST} \
+       -e DOCKER_TLS_VERIFY=${DOCKER_TLS_VERIFY} \
+       -e DOCKER_CERT_PATH=${DOCKER_CERT_PATH} \
+       -v ${DOCKER_CERT_PATH}:${DOCKER_CERT_PATH} \
+       -v $(which docker):$(which docker) \
+       cfplatformeng/sqs-broker-builder
+
+echo -e "\n Cleaning Builder Docker image..."
+docker rmi cfplatformeng/sqs-broker-builder

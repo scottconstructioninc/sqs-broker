@@ -1,0 +1,13 @@
+FROM scratch
+MAINTAINER Ferran Rodenas <frodenas@gmail.com>
+
+# Add files
+ADD sqs-broker /sqs-broker
+ADD config.json /config.json
+
+# Command to run
+ENTRYPOINT ["/sqs-broker"]
+CMD ["--config=/config.json"]
+
+# Expose listen ports
+EXPOSE 3000
