@@ -13,9 +13,6 @@ import (
 	"github.com/cf-platform-eng/sqs-broker/awssqs"
 )
 
-const defaultUsernameLength = 16
-const defaultPasswordLength = 32
-
 const instanceIDLogKey = "instance-id"
 const bindingIDLogKey = "binding-id"
 const detailsLogKey = "details"
