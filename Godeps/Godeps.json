@@ -7,43 +7,38 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/aws",
-			"Comment": "v0.9.16-1-g66c840e",
-			"Rev": "66c840e9981dd121a4239fc25e33b6c1c1caa781"
+			"Comment": "v0.10.1",
+			"Rev": "99e1b7ffaa0cea584f0cb8c60eef52fdfe25555b"
 		},
 		{
-			"ImportPath": "github.com/aws/aws-sdk-go/internal/endpoints",
-			"Comment": "v0.9.16-1-g66c840e",
-			"Rev": "66c840e9981dd121a4239fc25e33b6c1c1caa781"
+			"ImportPath": "github.com/aws/aws-sdk-go/private/protocol/query",
+			"Comment": "v0.10.1",
+			"Rev": "99e1b7ffaa0cea584f0cb8c60eef52fdfe25555b"
 		},
 		{
-			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/query",
-			"Comment": "v0.9.16-1-g66c840e",
-			"Rev": "66c840e9981dd121a4239fc25e33b6c1c1caa781"
+			"ImportPath": "github.com/aws/aws-sdk-go/private/protocol/rest",
+			"Comment": "v0.10.1",
+			"Rev": "99e1b7ffaa0cea584f0cb8c60eef52fdfe25555b"
 		},
 		{
-			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/rest",
-			"Comment": "v0.9.16-1-g66c840e",
-			"Rev": "66c840e9981dd121a4239fc25e33b6c1c1caa781"
+			"ImportPath": "github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil",
+			"Comment": "v0.10.1",
+			"Rev": "99e1b7ffaa0cea584f0cb8c60eef52fdfe25555b"
 		},
 		{
-			"ImportPath": "github.com/aws/aws-sdk-go/internal/protocol/xml/xmlutil",
-			"Comment": "v0.9.16-1-g66c840e",
-			"Rev": "66c840e9981dd121a4239fc25e33b6c1c1caa781"
-		},
-		{
-			"ImportPath": "github.com/aws/aws-sdk-go/internal/signer/v4",
-			"Comment": "v0.9.16-1-g66c840e",
-			"Rev": "66c840e9981dd121a4239fc25e33b6c1c1caa781"
+			"ImportPath": "github.com/aws/aws-sdk-go/private/signer/v4",
+			"Comment": "v0.10.1",
+			"Rev": "99e1b7ffaa0cea584f0cb8c60eef52fdfe25555b"
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/iam",
-			"Comment": "v0.9.16-1-g66c840e",
-			"Rev": "66c840e9981dd121a4239fc25e33b6c1c1caa781"
+			"Comment": "v0.10.1",
+			"Rev": "99e1b7ffaa0cea584f0cb8c60eef52fdfe25555b"
 		},
 		{
 			"ImportPath": "github.com/aws/aws-sdk-go/service/sqs",
-			"Comment": "v0.9.16-1-g66c840e",
-			"Rev": "66c840e9981dd121a4239fc25e33b6c1c1caa781"
+			"Comment": "v0.10.1",
+			"Rev": "99e1b7ffaa0cea584f0cb8c60eef52fdfe25555b"
 		},
 		{
 			"ImportPath": "github.com/frodenas/brokerapi",
