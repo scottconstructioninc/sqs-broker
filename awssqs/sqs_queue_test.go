@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -18,12 +19,12 @@ import (
 
 var _ = Describe("SQS Queue", func() {
 	var (
-		region    string
 		queueName string
 		queueURL  string
 
-		sqssvc  *sqs.SQS
-		sqsCall func(r *request.Request)
+		awsSession *session.Session
+		sqssvc     *sqs.SQS
+		sqsCall    func(r *request.Request)
 
 		testSink *lagertest.TestSink
 		logger   lager.Logger
@@ -32,19 +33,19 @@ var _ = Describe("SQS Queue", func() {
 	)
 
 	BeforeEach(func() {
-		region = "sqs-region"
 		queueName = "sqs-queue"
 		queueURL = "sqs-queue-url"
 	})
 
 	JustBeforeEach(func() {
-		sqssvc = sqs.New(nil)
+		awsSession = session.New(nil)
+		sqssvc = sqs.New(awsSession)
 
 		logger = lager.NewLogger("sqsqueue_test")
 		testSink = lagertest.NewTestSink()
 		logger.RegisterSink(testSink)
 
-		queue = NewSQSQueue(region, sqssvc, logger)
+		queue = NewSQSQueue(sqssvc, logger)
 	})
 
 	var _ = Describe("Describe", func() {

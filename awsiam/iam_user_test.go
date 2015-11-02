@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -18,11 +19,11 @@ import (
 
 var _ = Describe("IAM User", func() {
 	var (
-		region   string
 		userName string
 
-		iamsvc  *iam.IAM
-		iamCall func(r *request.Request)
+		awsSession *session.Session
+		iamsvc     *iam.IAM
+		iamCall    func(r *request.Request)
 
 		testSink *lagertest.TestSink
 		logger   lager.Logger
@@ -31,18 +32,18 @@ var _ = Describe("IAM User", func() {
 	)
 
 	BeforeEach(func() {
-		region = "iam-region"
 		userName = "iam-user"
 	})
 
 	JustBeforeEach(func() {
-		iamsvc = iam.New(nil)
+		awsSession = session.New(nil)
+		iamsvc = iam.New(awsSession)
 
 		logger = lager.NewLogger("iamuser_test")
 		testSink = lagertest.NewTestSink()
 		logger.RegisterSink(testSink)
 
-		user = NewIAMUser(region, iamsvc, logger)
+		user = NewIAMUser(iamsvc, logger)
 	})
 
 	var _ = Describe("Describe", func() {

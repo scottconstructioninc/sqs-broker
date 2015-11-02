@@ -10,18 +10,15 @@ import (
 )
 
 type SQSQueue struct {
-	region string
 	sqssvc *sqs.SQS
 	logger lager.Logger
 }
 
 func NewSQSQueue(
-	region string,
 	sqssvc *sqs.SQS,
 	logger lager.Logger,
 ) *SQSQueue {
 	return &SQSQueue{
-		region: region,
 		sqssvc: sqssvc,
 		logger: logger.Session("sqs-queue"),
 	}

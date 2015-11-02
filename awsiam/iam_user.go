@@ -10,18 +10,15 @@ import (
 )
 
 type IAMUser struct {
-	region string
 	iamsvc *iam.IAM
 	logger lager.Logger
 }
 
 func NewIAMUser(
-	region string,
 	iamsvc *iam.IAM,
 	logger lager.Logger,
 ) *IAMUser {
 	return &IAMUser{
-		region: region,
 		iamsvc: iamsvc,
 		logger: logger.Session("iam-user"),
 	}

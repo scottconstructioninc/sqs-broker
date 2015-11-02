@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/frodenas/brokerapi"
@@ -59,12 +60,13 @@ func main() {
 	logger := buildLogger(config.LogLevel)
 
 	awsConfig := aws.NewConfig().WithRegion(config.SQSConfig.Region)
+	awsSession := session.New(awsConfig)
 
-	sqssvc := sqs.New(awsConfig)
-	queue := awssqs.NewSQSQueue(config.SQSConfig.Region, sqssvc, logger)
+	sqssvc := sqs.New(awsSession)
+	queue := awssqs.NewSQSQueue(sqssvc, logger)
 
-	iamsvc := iam.New(awsConfig)
-	user := awsiam.NewIAMUser(config.SQSConfig.Region, iamsvc, logger)
+	iamsvc := iam.New(awsSession)
+	user := awsiam.NewIAMUser(iamsvc, logger)
 
 	serviceBroker := sqsbroker.New(config.SQSConfig, queue, user, logger)
 
