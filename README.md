@@ -53,7 +53,7 @@ $ bin/build-docker-image
 
 ### BOSH
 
-This broker can be deployed using the [AWS SQS Service Broker BOSH Release](https://github.com/cf-platform-eng/sqs-broker-boshrelease).
+This broker can be deployed using the [AWS Service Broker BOSH Release](https://github.com/cf-platform-eng/aws-broker-boshrelease).
 
 ## Configuration
 
