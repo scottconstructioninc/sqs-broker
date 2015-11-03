@@ -100,7 +100,7 @@ var _ = Describe("SQS Broker", func() {
 
 		config = Config{
 			Region:                       "sqs-region",
-			QueuePrefix:                  "cf",
+			SQSPrefix:                    "cf",
 			AllowUserProvisionParameters: allowUserProvisionParameters,
 			AllowUserUpdateParameters:    allowUserUpdateParameters,
 			Catalog:                      catalog,

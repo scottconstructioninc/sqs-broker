@@ -16,7 +16,7 @@ A sample configuration can be found at [config-sample.json](https://github.com/c
 | Option                         | Required | Type    | Description
 |:-------------------------------|:--------:|:------- |:-----------
 | region                         | Y        | String  | SQS Region
-| queue_prefix                   | Y        | String  | Prefix to add to SQS Queue Names
+| sqs_prefix                     | Y        | String  | Prefix to add to SQS Queue Names
 | allow_user_provision_parameters| N        | Boolean | Allow users to send arbitrary parameters on provision calls (defaults to `false`)
 | allow_user_update_parameters   | N        | Boolean | Allow users to send arbitrary parameters on update calls (defaults to `false`)
 | catalog                        | Y        | Hash    | [SQS Broker catalog](https://github.com/cf-platform-eng/sqs-broker/blob/master/CONFIGURATION.md#sqs-broker-catalog)

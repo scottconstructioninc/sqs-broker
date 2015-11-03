@@ -4,7 +4,7 @@
   "password": "password",
   "sqs_config": {
     "region": "us-east-1",
-    "queue_prefix": "cf",
+    "sqs_prefix": "cf",
     "allow_user_provision_parameters": true,
     "allow_user_update_parameters": true,
     "catalog": {

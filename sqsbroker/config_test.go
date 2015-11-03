@@ -12,8 +12,8 @@ var _ = Describe("Config", func() {
 		config Config
 
 		validConfig = Config{
-			Region:      "sqs-region",
-			QueuePrefix: "cf",
+			Region:    "sqs-region",
+			SQSPrefix: "cf",
 			Catalog: Catalog{
 				[]Service{
 					Service{
@@ -44,12 +44,12 @@ var _ = Describe("Config", func() {
 			Expect(err.Error()).To(ContainSubstring("Must provide a non-empty Region"))
 		})
 
-		It("returns error if QueuePrefix is not valid", func() {
-			config.QueuePrefix = ""
+		It("returns error if SQSPrefix is not valid", func() {
+			config.SQSPrefix = ""
 
 			err := config.Validate()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Must provide a non-empty QueuePrefix"))
+			Expect(err.Error()).To(ContainSubstring("Must provide a non-empty SQSPrefix"))
 		})
 
 		It("returns error if Catalog is not valid", func() {

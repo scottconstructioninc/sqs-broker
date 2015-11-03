@@ -7,7 +7,7 @@ import (
 
 type Config struct {
 	Region                       string  `json:"region"`
-	QueuePrefix                  string  `json:"queue_prefix"`
+	SQSPrefix                    string  `json:"sqs_prefix"`
 	AllowUserProvisionParameters bool    `json:"allow_user_provision_parameters"`
 	AllowUserUpdateParameters    bool    `json:"allow_user_update_parameters"`
 	Catalog                      Catalog `json:"catalog"`
@@ -18,8 +18,8 @@ func (c Config) Validate() error {
 		return errors.New("Must provide a non-empty Region")
 	}
 
-	if c.QueuePrefix == "" {
-		return errors.New("Must provide a non-empty QueuePrefix")
+	if c.SQSPrefix == "" {
+		return errors.New("Must provide a non-empty SQSPrefix")
 	}
 
 	if err := c.Catalog.Validate(); err != nil {

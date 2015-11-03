@@ -19,7 +19,7 @@ const detailsLogKey = "details"
 const acceptsIncompleteLogKey = "acceptsIncomplete"
 
 type SQSBroker struct {
-	queuePrefix                  string
+	sqsPrefix                    string
 	allowUserProvisionParameters bool
 	allowUserUpdateParameters    bool
 	catalog                      Catalog
@@ -35,7 +35,7 @@ func New(
 	logger lager.Logger,
 ) *SQSBroker {
 	return &SQSBroker{
-		queuePrefix:                  config.QueuePrefix,
+		sqsPrefix:                    config.SQSPrefix,
 		allowUserProvisionParameters: config.AllowUserProvisionParameters,
 		allowUserUpdateParameters:    config.AllowUserUpdateParameters,
 		catalog:                      config.Catalog,
@@ -250,15 +250,15 @@ func (b *SQSBroker) LastOperation(instanceID string) (brokerapi.LastOperationRes
 }
 
 func (b *SQSBroker) queueName(instanceID string) string {
-	return fmt.Sprintf("%s-%s", b.queuePrefix, instanceID)
+	return fmt.Sprintf("%s-%s", b.sqsPrefix, instanceID)
 }
 
 func (b *SQSBroker) queueLabel(bindingID string) string {
-	return fmt.Sprintf("%s-%s", b.queuePrefix, bindingID)
+	return fmt.Sprintf("%s-%s", b.sqsPrefix, bindingID)
 }
 
 func (b *SQSBroker) userName(bindingID string) string {
-	return fmt.Sprintf("%s-%s", b.queuePrefix, bindingID)
+	return fmt.Sprintf("%s-%s", b.sqsPrefix, bindingID)
 }
 
 func (b *SQSBroker) createQueueDetails(instanceID string, servicePlan ServicePlan, provisionParameters ProvisionParameters, details brokerapi.ProvisionDetails) *awssqs.QueueDetails {

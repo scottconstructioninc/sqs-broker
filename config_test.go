@@ -18,8 +18,8 @@ var _ = Describe("Config", func() {
 			Username: "broker-username",
 			Password: "broker-password",
 			SQSConfig: sqsbroker.Config{
-				Region:      "sqs-region",
-				QueuePrefix: "cf",
+				Region:    "sqs-region",
+				SQSPrefix: "cf",
 			},
 		}
 	)
