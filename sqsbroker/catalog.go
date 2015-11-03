@@ -60,11 +60,11 @@ type Cost struct {
 }
 
 type SQSProperties struct {
-	DelaySeconds                  string `json:"delay_seconds"`
-	MaximumMessageSize            string `json:"maximum_message_size"`
-	MessageRetentionPeriod        string `json:"message_retention_period"`
-	ReceiveMessageWaitTimeSeconds string `json:"receive_message_wait_time_seconds"`
-	VisibilityTimeout             string `json:"visibility_timeout"`
+	DelaySeconds                  string `json:"delay_seconds,omitempty"`
+	MaximumMessageSize            string `json:"maximum_message_size,omitempty"`
+	MessageRetentionPeriod        string `json:"message_retention_period,omitempty"`
+	ReceiveMessageWaitTimeSeconds string `json:"receive_message_wait_time_seconds,omitempty"`
+	VisibilityTimeout             string `json:"visibility_timeout,omitempty"`
 }
 
 func (c Catalog) Validate() error {
