@@ -32,7 +32,7 @@ func (i *IAMUser) Describe(userName string) (UserDetails, error) {
 	getUserInput := &iam.GetUserInput{
 		UserName: aws.String(userName),
 	}
-	i.logger.Debug("describe-user", lager.Data{"input": getUserInput})
+	i.logger.Debug("get-user", lager.Data{"input": getUserInput})
 
 	getUserOutput, err := i.iamsvc.GetUser(getUserInput)
 	if err != nil {
@@ -42,7 +42,7 @@ func (i *IAMUser) Describe(userName string) (UserDetails, error) {
 		}
 		return userDetails, err
 	}
-	i.logger.Debug("describe-user", lager.Data{"output": getUserOutput})
+	i.logger.Debug("get-user", lager.Data{"output": getUserOutput})
 
 	userDetails.ARN = aws.StringValue(getUserOutput.User.Arn)
 	userDetails.UserID = aws.StringValue(getUserOutput.User.UserId)
