@@ -968,12 +968,14 @@ var _ = Describe("SQS Broker", func() {
 			Expect(queue.RemovePermissionCalled).To(BeTrue())
 			Expect(queue.RemovePermissionQueueName).To(Equal(queueName))
 			Expect(queue.RemovePermissionQueueLabel).To(Equal(queueLabel))
+			Expect(user.ListAccessKeysCalled).To(BeTrue())
+			Expect(user.ListAccessKeysUserName).To(Equal(userName))
 			Expect(user.DeleteCalled).To(BeTrue())
 			Expect(user.DeleteUserName).To(Equal(userName))
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("when removing permissions fails", func() {
+		Context("when removing Permissions fails", func() {
 			BeforeEach(func() {
 				queue.RemovePermissionError = errors.New("operation failed")
 			})
@@ -997,7 +999,45 @@ var _ = Describe("SQS Broker", func() {
 			})
 		})
 
-		Context("when deleting user fails", func() {
+		Context("when listing the User Access Keys fails", func() {
+			BeforeEach(func() {
+				user.ListAccessKeysError = errors.New("operation failed")
+			})
+
+			It("returns the proper error", func() {
+				err := sqsBroker.Unbind(instanceID, bindingID, unbindDetails)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("operation failed"))
+			})
+		})
+
+		Context("when User has Access Keys", func() {
+			BeforeEach(func() {
+				user.ListAccessKeysAccessKeys = []string{"access-key-id-1"}
+			})
+
+			It("makes the proper calls", func() {
+				err := sqsBroker.Unbind(instanceID, bindingID, unbindDetails)
+				Expect(user.DeleteAccessKeyCalled).To(BeTrue())
+				Expect(user.DeleteAccessKeyUserName).To(Equal(userName))
+				Expect(user.DeleteAccessKeyAccessKeyID).To(Equal("access-key-id-1"))
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			Context("when deleting the User Access Keys fails", func() {
+				BeforeEach(func() {
+					user.DeleteAccessKeyError = errors.New("operation failed")
+				})
+
+				It("returns the proper error", func() {
+					err := sqsBroker.Unbind(instanceID, bindingID, unbindDetails)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("operation failed"))
+				})
+			})
+		})
+
+		Context("when deleting the User fails", func() {
 			BeforeEach(func() {
 				user.DeleteError = errors.New("operation failed")
 			})

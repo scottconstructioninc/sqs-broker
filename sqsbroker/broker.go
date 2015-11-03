@@ -234,6 +234,17 @@ func (b *SQSBroker) Unbind(instanceID, bindingID string, details brokerapi.Unbin
 		return err
 	}
 
+	accessKeys, err := b.user.ListAccessKeys(b.userName(bindingID))
+	if err != nil {
+		return err
+	}
+
+	for _, accessKey := range accessKeys {
+		if err := b.user.DeleteAccessKey(b.userName(bindingID), accessKey); err != nil {
+			return err
+		}
+	}
+
 	if err := b.user.Delete(b.userName(bindingID)); err != nil {
 		return err
 	}
