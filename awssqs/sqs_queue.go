@@ -87,7 +87,8 @@ func (s *SQSQueue) Delete(queueName string) error {
 		s.logger.Error("aws-sqs-error", err)
 		if awsErr, ok := err.(awserr.Error); ok {
 			if reqErr, ok := err.(awserr.RequestFailure); ok {
-				if reqErr.StatusCode() == 404 {
+				// AWS SQS returns a 400 if Queue is not found
+				if reqErr.StatusCode() == 400 || reqErr.StatusCode() == 404 {
 					return ErrQueueDoesNotExist
 				}
 			}
@@ -119,7 +120,8 @@ func (s *SQSQueue) AddPermission(queueName string, label string, accountIds []st
 		s.logger.Error("aws-sqs-error", err)
 		if awsErr, ok := err.(awserr.Error); ok {
 			if reqErr, ok := err.(awserr.RequestFailure); ok {
-				if reqErr.StatusCode() == 404 {
+				// AWS SQS returns a 400 if Queue is not found
+				if reqErr.StatusCode() == 400 || reqErr.StatusCode() == 404 {
 					return ErrQueueDoesNotExist
 				}
 			}
@@ -149,7 +151,8 @@ func (s *SQSQueue) RemovePermission(queueName string, label string) error {
 		s.logger.Error("aws-sqs-error", err)
 		if awsErr, ok := err.(awserr.Error); ok {
 			if reqErr, ok := err.(awserr.RequestFailure); ok {
-				if reqErr.StatusCode() == 404 {
+				// AWS SQS returns a 400 if Queue is not found
+				if reqErr.StatusCode() == 400 || reqErr.StatusCode() == 404 {
 					return ErrQueueDoesNotExist
 				}
 			}
@@ -173,7 +176,8 @@ func (s *SQSQueue) getQueueURL(queueName string) (string, error) {
 		s.logger.Error("aws-sqs-error", err)
 		if awsErr, ok := err.(awserr.Error); ok {
 			if reqErr, ok := err.(awserr.RequestFailure); ok {
-				if reqErr.StatusCode() == 404 {
+				// AWS SQS returns a 400 if Queue is not found
+				if reqErr.StatusCode() == 400 || reqErr.StatusCode() == 404 {
 					return "", ErrQueueDoesNotExist
 				}
 			}
@@ -198,7 +202,8 @@ func (s *SQSQueue) getQueueAttributes(queueURL string) (map[string]string, error
 		s.logger.Error("aws-sqs-error", err)
 		if awsErr, ok := err.(awserr.Error); ok {
 			if reqErr, ok := err.(awserr.RequestFailure); ok {
-				if reqErr.StatusCode() == 404 {
+				// AWS SQS returns a 400 if Queue is not found
+				if reqErr.StatusCode() == 400 || reqErr.StatusCode() == 404 {
 					return nil, ErrQueueDoesNotExist
 				}
 			}
@@ -220,7 +225,8 @@ func (s *SQSQueue) setQueueAttributes(queueURL string, queueDetails QueueDetails
 		s.logger.Error("aws-sqs-error", err)
 		if awsErr, ok := err.(awserr.Error); ok {
 			if reqErr, ok := err.(awserr.RequestFailure); ok {
-				if reqErr.StatusCode() == 404 {
+				// AWS SQS returns a 400 if Queue is not found
+				if reqErr.StatusCode() == 400 || reqErr.StatusCode() == 404 {
 					return ErrQueueDoesNotExist
 				}
 			}

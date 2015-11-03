@@ -116,7 +116,7 @@ var _ = Describe("SQS Queue", func() {
 			sqssvc.Handlers.Send.PushBack(sqsCall)
 		})
 
-		It("sets the Queue Attibutes", func() {
+		It("gets the Queue Attibutes", func() {
 			queueDetails, err := queue.Describe(queueName)
 			Expect(queueDetails).To(Equal(properQueueDetails))
 			Expect(err).ToNot(HaveOccurred())
@@ -230,18 +230,6 @@ var _ = Describe("SQS Queue", func() {
 		It("creates the Queue", func() {
 			err := queue.Create(queueName, queueDetails)
 			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when has DelaySeconds", func() {
-			BeforeEach(func() {
-				queueDetails.DelaySeconds = "test-delay-seconds"
-				createQueueInput.Attributes["DelaySeconds"] = aws.String("test-delay-seconds")
-			})
-
-			It("does not return error", func() {
-				err := queue.Create(queueName, queueDetails)
-				Expect(err).ToNot(HaveOccurred())
-			})
 		})
 
 		Context("when has DelaySeconds", func() {
@@ -391,18 +379,6 @@ var _ = Describe("SQS Queue", func() {
 		It("sets the Queue Attibutes", func() {
 			err := queue.Modify(queueName, queueDetails)
 			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when has DelaySeconds", func() {
-			BeforeEach(func() {
-				queueDetails.DelaySeconds = "test-delay-seconds"
-				setQueueAttributesInput.Attributes["DelaySeconds"] = aws.String("test-delay-seconds")
-			})
-
-			It("does not return error", func() {
-				err := queue.Modify(queueName, queueDetails)
-				Expect(err).ToNot(HaveOccurred())
-			})
 		})
 
 		Context("when has DelaySeconds", func() {
@@ -727,7 +703,7 @@ var _ = Describe("SQS Queue", func() {
 			sqssvc.Handlers.Send.PushBack(sqsCall)
 		})
 
-		It("adds permissions", func() {
+		It("adds Permissions to the Queue", func() {
 			err := queue.AddPermission(queueName, label, accountIds, actions)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -769,7 +745,7 @@ var _ = Describe("SQS Queue", func() {
 			})
 		})
 
-		Context("when adding permissions fails", func() {
+		Context("when adding Permissions fails", func() {
 			BeforeEach(func() {
 				addPermissionError = errors.New("operation failed")
 			})
@@ -854,7 +830,7 @@ var _ = Describe("SQS Queue", func() {
 			sqssvc.Handlers.Send.PushBack(sqsCall)
 		})
 
-		It("removes permissions", func() {
+		It("removes Permissions from the Queue", func() {
 			err := queue.RemovePermission(queueName, label)
 			Expect(err).ToNot(HaveOccurred())
 		})
