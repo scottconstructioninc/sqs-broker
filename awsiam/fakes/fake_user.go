@@ -18,6 +18,11 @@ type FakeUser struct {
 	DeleteUserName string
 	DeleteError    error
 
+	ListAccessKeysCalled     bool
+	ListAccessKeysUserName   string
+	ListAccessKeysAccessKeys []string
+	ListAccessKeysError      error
+
 	CreateAccessKeyCalled          bool
 	CreateAccessKeyUserName        string
 	CreateAccessKeyAccessKeyID     string
@@ -49,6 +54,13 @@ func (f *FakeUser) Delete(userName string) error {
 	f.DeleteUserName = userName
 
 	return f.DeleteError
+}
+
+func (f *FakeUser) ListAccessKeys(userName string) ([]string, error) {
+	f.ListAccessKeysCalled = true
+	f.ListAccessKeysUserName = userName
+
+	return f.ListAccessKeysAccessKeys, f.ListAccessKeysError
 }
 
 func (f *FakeUser) CreateAccessKey(userName string) (string, string, error) {

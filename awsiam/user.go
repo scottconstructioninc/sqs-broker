@@ -8,6 +8,7 @@ type User interface {
 	Describe(userName string) (UserDetails, error)
 	Create(userName string) error
 	Delete(userName string) error
+	ListAccessKeys(userName string) ([]string, error)
 	CreateAccessKey(userName string) (string, string, error)
 	DeleteAccessKey(userName string, accessKeyID string) error
 }

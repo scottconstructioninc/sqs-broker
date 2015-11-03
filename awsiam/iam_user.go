@@ -88,6 +88,31 @@ func (i *IAMUser) Delete(userName string) error {
 	return nil
 }
 
+func (i *IAMUser) ListAccessKeys(userName string) ([]string, error) {
+	var accessKeys []string
+
+	listAccessKeysInput := &iam.ListAccessKeysInput{
+		UserName: aws.String(userName),
+	}
+	i.logger.Debug("list-access-keys", lager.Data{"input": listAccessKeysInput})
+
+	listAccessKeysOutput, err := i.iamsvc.ListAccessKeys(listAccessKeysInput)
+	if err != nil {
+		i.logger.Error("aws-iam-error", err)
+		if awsErr, ok := err.(awserr.Error); ok {
+			return accessKeys, errors.New(awsErr.Code() + ": " + awsErr.Message())
+		}
+		return accessKeys, err
+	}
+	i.logger.Debug("list-access-keys", lager.Data{"output": listAccessKeysOutput})
+
+	for _, accessKey := range listAccessKeysOutput.AccessKeyMetadata {
+		accessKeys = append(accessKeys, aws.StringValue(accessKey.AccessKeyId))
+	}
+
+	return accessKeys, nil
+}
+
 func (i *IAMUser) CreateAccessKey(userName string) (string, string, error) {
 	createAccessKeyInput := &iam.CreateAccessKeyInput{
 		UserName: aws.String(userName),

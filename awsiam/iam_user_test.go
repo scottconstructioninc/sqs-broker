@@ -229,6 +229,75 @@ var _ = Describe("IAM User", func() {
 		})
 	})
 
+	var _ = Describe("ListAccessKeys", func() {
+		var (
+			listAccessKeysMetadata []*iam.AccessKeyMetadata
+
+			listAccessKeysInput *iam.ListAccessKeysInput
+			listAccessKeysError error
+		)
+
+		BeforeEach(func() {
+			listAccessKeysMetadata = []*iam.AccessKeyMetadata{
+				&iam.AccessKeyMetadata{
+					AccessKeyId: aws.String("access-key-id-1"),
+				},
+				&iam.AccessKeyMetadata{
+					AccessKeyId: aws.String("access-key-id-2"),
+				},
+			}
+
+			listAccessKeysInput = &iam.ListAccessKeysInput{
+				UserName: aws.String(userName),
+			}
+			listAccessKeysError = nil
+		})
+
+		JustBeforeEach(func() {
+			iamsvc.Handlers.Clear()
+
+			iamCall = func(r *request.Request) {
+				Expect(r.Operation.Name).To(Equal("ListAccessKeys"))
+				Expect(r.Params).To(BeAssignableToTypeOf(&iam.ListAccessKeysInput{}))
+				Expect(r.Params).To(Equal(listAccessKeysInput))
+				data := r.Data.(*iam.ListAccessKeysOutput)
+				data.AccessKeyMetadata = listAccessKeysMetadata
+				r.Error = listAccessKeysError
+			}
+			iamsvc.Handlers.Send.PushBack(iamCall)
+		})
+
+		It("creates the Access Key", func() {
+			accessKeys, err := user.ListAccessKeys(userName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(accessKeys).To(Equal([]string{"access-key-id-1", "access-key-id-2"}))
+		})
+
+		Context("when creating the Access Key fails", func() {
+			BeforeEach(func() {
+				listAccessKeysError = errors.New("operation failed")
+			})
+
+			It("returns the proper error", func() {
+				_, err := user.ListAccessKeys(userName)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("operation failed"))
+			})
+
+			Context("and it is an AWS error", func() {
+				BeforeEach(func() {
+					listAccessKeysError = awserr.New("code", "message", errors.New("operation failed"))
+				})
+
+				It("returns the proper error", func() {
+					_, err := user.ListAccessKeys(userName)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("code: message"))
+				})
+			})
+		})
+	})
+
 	var _ = Describe("CreateAccessKey", func() {
 		var (
 			createAccessKey *iam.AccessKey
