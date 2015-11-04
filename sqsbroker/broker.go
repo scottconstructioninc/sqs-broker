@@ -202,9 +202,7 @@ func (b *SQSBroker) Bind(instanceID, bindingID string, details brokerapi.BindDet
 		return bindingResponse, err
 	}
 
-	accountIds := []string{userDetails.ARN}
-	actions := []string{"*"}
-	if err = b.queue.AddPermission(b.queueName(instanceID), b.queueLabel(bindingID), accountIds, actions); err != nil {
+	if err = b.queue.AddPermission(b.queueName(instanceID), b.queueLabel(bindingID), userDetails.ARN, "*"); err != nil {
 		if err == awssqs.ErrQueueDoesNotExist {
 			return bindingResponse, brokerapi.ErrInstanceDoesNotExist
 		}

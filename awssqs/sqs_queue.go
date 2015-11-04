@@ -1,6 +1,7 @@
 package awssqs
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -8,6 +9,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/pivotal-golang/lager"
 )
+
+type QueuePolicy struct {
+	Version   string
+	Id        string
+	Statement []QueuePolicyStatement
+}
+
+type QueuePolicyStatement struct {
+	Sid       string
+	Effect    string
+	Principal map[string]string
+	Action    string
+	Resource  string
+}
 
 type SQSQueue struct {
 	sqssvc *sqs.SQS
@@ -101,35 +116,35 @@ func (s *SQSQueue) Delete(queueName string) error {
 	return nil
 }
 
-func (s *SQSQueue) AddPermission(queueName string, label string, accountIds []string, actions []string) error {
-	queueURL, err := s.getQueueURL(queueName)
+func (s *SQSQueue) AddPermission(queueName string, label string, userARN string, action string) error {
+	queueDetails, err := s.Describe(queueName)
 	if err != nil {
 		return err
 	}
 
-	addPermissionInput := &sqs.AddPermissionInput{
-		QueueUrl:      aws.String(queueURL),
-		Label:         aws.String(label),
-		AWSAccountIds: aws.StringSlice(accountIds),
-		Actions:       aws.StringSlice(actions),
-	}
-	s.logger.Debug("add-permission", lager.Data{"input": addPermissionInput})
-
-	addPermissionOutput, err := s.sqssvc.AddPermission(addPermissionInput)
-	if err != nil {
-		s.logger.Error("aws-sqs-error", err)
-		if awsErr, ok := err.(awserr.Error); ok {
-			if reqErr, ok := err.(awserr.RequestFailure); ok {
-				// AWS SQS returns a 400 if Queue is not found
-				if reqErr.StatusCode() == 400 || reqErr.StatusCode() == 404 {
-					return ErrQueueDoesNotExist
-				}
-			}
-			return errors.New(awsErr.Code() + ": " + awsErr.Message())
+	queuePolicyStatement := s.buildQueuePolicyStatement(label, userARN, action, queueDetails.QueueArn)
+	if queueDetails.Policy != "" {
+		policy := QueuePolicy{}
+		if err = json.Unmarshal([]byte(queueDetails.Policy), &policy); err != nil {
+			return err
 		}
+
+		policy.Statement = append(policy.Statement, queuePolicyStatement)
+		queueDetails.Policy, err = s.buildQueuePolicy(policy.Statement)
+		if err != nil {
+			return err
+		}
+	} else {
+		queueDetails.Policy, err = s.buildQueuePolicy([]QueuePolicyStatement{queuePolicyStatement})
+		if err != nil {
+			return err
+		}
+	}
+
+	err = s.setQueueAttributes(queueDetails.QueueURL, queueDetails)
+	if err != nil {
 		return err
 	}
-	s.logger.Debug("add-permission", lager.Data{"output": addPermissionOutput})
 
 	return nil
 }
@@ -318,4 +333,33 @@ func (s *SQSQueue) buildSetQueueAttributesInput(queueURL string, queueDetails Qu
 	}
 
 	return setQueueAttributesInput
+}
+
+func (s *SQSQueue) buildQueuePolicy(queuePolicyStatements []QueuePolicyStatement) (string, error) {
+	queuePolicy := QueuePolicy{
+		Version:   "2012-10-17",
+		Id:        "SQSQueuePolicy",
+		Statement: queuePolicyStatements,
+	}
+
+	policy, err := json.Marshal(queuePolicy)
+	if err != nil {
+		return "", err
+	}
+
+	return string(policy), nil
+}
+
+func (s *SQSQueue) buildQueuePolicyStatement(policyID string, userARN string, action string, queueARN string) QueuePolicyStatement {
+	queuePolicyStatement := QueuePolicyStatement{
+		Sid:    policyID,
+		Effect: "Allow",
+		Principal: map[string]string{
+			"AWS": userARN,
+		},
+		Action:   "sqs:" + action,
+		Resource: queueARN,
+	}
+
+	return queuePolicyStatement
 }

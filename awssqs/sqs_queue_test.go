@@ -652,41 +652,54 @@ var _ = Describe("SQS Queue", func() {
 
 	var _ = Describe("AddPermission", func() {
 		var (
-			label      string
-			accountIds []string
-			actions    []string
+			label   string
+			userARN string
+			action  string
 
 			getQueueURLInput *sqs.GetQueueUrlInput
 			getQueueURLError error
 
-			addPermissionInput *sqs.AddPermissionInput
-			addPermissionError error
+			getQueueAttributes      map[string]*string
+			getQueueAttributesInput *sqs.GetQueueAttributesInput
+			getQueueAttributesError error
+
+			setQueueAttributesInput *sqs.SetQueueAttributesInput
+			setQueueAttributesError error
 		)
 
 		BeforeEach(func() {
 			label = "test-label"
-			accountIds = []string{"principal"}
-			actions = []string{"*"}
+			userARN = "user-arn"
+			action = "*"
 
 			getQueueURLInput = &sqs.GetQueueUrlInput{
 				QueueName: aws.String(queueName),
 			}
 			getQueueURLError = nil
 
-			addPermissionInput = &sqs.AddPermissionInput{
-				QueueUrl:      aws.String(queueURL),
-				Label:         aws.String(label),
-				AWSAccountIds: aws.StringSlice(accountIds),
-				Actions:       aws.StringSlice(actions),
+			getQueueAttributes = map[string]*string{
+				"QueueArn": aws.String("queue-arn"),
 			}
-			addPermissionError = nil
+			getQueueAttributesInput = &sqs.GetQueueAttributesInput{
+				QueueUrl:       aws.String(queueURL),
+				AttributeNames: aws.StringSlice([]string{"All"}),
+			}
+			getQueueAttributesError = nil
+
+			setQueueAttributesInput = &sqs.SetQueueAttributesInput{
+				QueueUrl: aws.String(queueURL),
+				Attributes: map[string]*string{
+					"Policy": aws.String("{\"Version\":\"2012-10-17\",\"Id\":\"SQSQueuePolicy\",\"Statement\":[{\"Sid\":\"test-label\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"user-arn\"},\"Action\":\"sqs:*\",\"Resource\":\"queue-arn\"}]}"),
+				},
+			}
+			setQueueAttributesError = nil
 		})
 
 		JustBeforeEach(func() {
 			sqssvc.Handlers.Clear()
 
 			sqsCall = func(r *request.Request) {
-				Expect(r.Operation.Name).To(MatchRegexp("GetQueueUrl|AddPermission"))
+				Expect(r.Operation.Name).To(MatchRegexp("GetQueueUrl|GetQueueAttributes|SetQueueAttributes"))
 				switch r.Operation.Name {
 				case "GetQueueUrl":
 					Expect(r.Params).To(BeAssignableToTypeOf(&sqs.GetQueueUrlInput{}))
@@ -694,18 +707,41 @@ var _ = Describe("SQS Queue", func() {
 					data := r.Data.(*sqs.GetQueueUrlOutput)
 					data.QueueUrl = aws.String(queueURL)
 					r.Error = getQueueURLError
-				case "AddPermission":
-					Expect(r.Params).To(BeAssignableToTypeOf(&sqs.AddPermissionInput{}))
-					Expect(r.Params).To(Equal(addPermissionInput))
-					r.Error = addPermissionError
+				case "GetQueueAttributes":
+					Expect(r.Params).To(BeAssignableToTypeOf(&sqs.GetQueueAttributesInput{}))
+					Expect(r.Params).To(Equal(getQueueAttributesInput))
+					data := r.Data.(*sqs.GetQueueAttributesOutput)
+					data.Attributes = getQueueAttributes
+					r.Error = getQueueAttributesError
+				case "SetQueueAttributes":
+					Expect(r.Params).To(BeAssignableToTypeOf(&sqs.SetQueueAttributesInput{}))
+					Expect(r.Params).To(Equal(setQueueAttributesInput))
+					r.Error = setQueueAttributesError
 				}
 			}
 			sqssvc.Handlers.Send.PushBack(sqsCall)
 		})
 
 		It("adds Permissions to the Queue", func() {
-			err := queue.AddPermission(queueName, label, accountIds, actions)
+			err := queue.AddPermission(queueName, label, userARN, action)
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when Queue has already a policy", func() {
+			BeforeEach(func() {
+				getQueueAttributes = map[string]*string{
+					"QueueArn": aws.String("queue-arn"),
+					"Policy":   aws.String("{\"Version\":\"2012-10-17\",\"Id\":\"SQSQueuePolicy\",\"Statement\":[{\"Sid\":\"old-test-label\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"old-user-arn\"},\"Action\":\"sqs:*\",\"Resource\":\"queue-arn\"}]}"),
+				}
+				setQueueAttributesInput.Attributes = map[string]*string{
+					"Policy": aws.String("{\"Version\":\"2012-10-17\",\"Id\":\"SQSQueuePolicy\",\"Statement\":[{\"Sid\":\"old-test-label\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"old-user-arn\"},\"Action\":\"sqs:*\",\"Resource\":\"queue-arn\"},{\"Sid\":\"test-label\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"user-arn\"},\"Action\":\"sqs:*\",\"Resource\":\"queue-arn\"}]}"),
+				}
+			})
+
+			It("adds Permissions to the Queue", func() {
+				err := queue.AddPermission(queueName, label, userARN, action)
+				Expect(err).ToNot(HaveOccurred())
+			})
 		})
 
 		Context("when getting the Queue URL fails", func() {
@@ -714,71 +750,21 @@ var _ = Describe("SQS Queue", func() {
 			})
 
 			It("returns the proper error", func() {
-				err := queue.AddPermission(queueName, label, accountIds, actions)
+				err := queue.AddPermission(queueName, label, userARN, action)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("operation failed"))
-			})
-
-			Context("and it is an AWS error", func() {
-				BeforeEach(func() {
-					getQueueURLError = awserr.New("code", "message", errors.New("operation failed"))
-				})
-
-				It("returns the proper error", func() {
-					err := queue.AddPermission(queueName, label, accountIds, actions)
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(Equal("code: message"))
-				})
-			})
-
-			Context("and it is a 404 error", func() {
-				BeforeEach(func() {
-					awsError := awserr.New("code", "message", errors.New("operation failed"))
-					getQueueURLError = awserr.NewRequestFailure(awsError, 404, "request-id")
-				})
-
-				It("returns the proper error", func() {
-					err := queue.AddPermission(queueName, label, accountIds, actions)
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(ErrQueueDoesNotExist))
-				})
 			})
 		})
 
 		Context("when adding Permissions fails", func() {
 			BeforeEach(func() {
-				addPermissionError = errors.New("operation failed")
+				setQueueAttributesError = errors.New("operation failed")
 			})
 
 			It("returns the proper error", func() {
-				err := queue.AddPermission(queueName, label, accountIds, actions)
+				err := queue.AddPermission(queueName, label, userARN, action)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("operation failed"))
-			})
-
-			Context("and it is an AWS error", func() {
-				BeforeEach(func() {
-					addPermissionError = awserr.New("code", "message", errors.New("operation failed"))
-				})
-
-				It("returns the proper error", func() {
-					err := queue.AddPermission(queueName, label, accountIds, actions)
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(Equal("code: message"))
-				})
-			})
-
-			Context("and it is a 404 error", func() {
-				BeforeEach(func() {
-					awsError := awserr.New("code", "message", errors.New("operation failed"))
-					addPermissionError = awserr.NewRequestFailure(awsError, 404, "request-id")
-				})
-
-				It("returns the proper error", func() {
-					err := queue.AddPermission(queueName, label, accountIds, actions)
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(ErrQueueDoesNotExist))
-				})
 			})
 		})
 	})

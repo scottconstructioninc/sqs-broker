@@ -9,7 +9,7 @@ type Queue interface {
 	Create(queueName string, queueDetails QueueDetails) error
 	Modify(queueName string, queueDetails QueueDetails) error
 	Delete(queueName string) error
-	AddPermission(queueName string, label string, accountIds []string, actions []string) error
+	AddPermission(queueName string, label string, userARN string, action string) error
 	RemovePermission(queueName string, label string) error
 }
 

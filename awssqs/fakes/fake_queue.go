@@ -27,8 +27,8 @@ type FakeQueue struct {
 	AddPermissionCalled     bool
 	AddPermissionQueueName  string
 	AddPermissionQueueLabel string
-	AddPermissionAccountIds []string
-	AddPermissionActions    []string
+	AddPermissionUserARN    string
+	AddPermissionAction     string
 	AddPermissionError      error
 
 	RemovePermissionCalled     bool
@@ -67,12 +67,12 @@ func (f *FakeQueue) Delete(queueName string) error {
 	return f.DeleteError
 }
 
-func (f *FakeQueue) AddPermission(queueName string, label string, accountIds []string, actions []string) error {
+func (f *FakeQueue) AddPermission(queueName string, label string, userARN string, action string) error {
 	f.AddPermissionCalled = true
 	f.AddPermissionQueueName = queueName
 	f.AddPermissionQueueLabel = label
-	f.AddPermissionAccountIds = accountIds
-	f.AddPermissionActions = actions
+	f.AddPermissionUserARN = userARN
+	f.AddPermissionAction = action
 
 	return f.AddPermissionError
 }

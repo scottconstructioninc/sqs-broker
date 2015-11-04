@@ -813,6 +813,10 @@ var _ = Describe("SQS Broker", func() {
 
 		It("makes the proper calls", func() {
 			_, err := sqsBroker.Bind(instanceID, bindingID, bindDetails)
+			Expect(queue.DescribeCalled).To(BeTrue())
+			Expect(queue.DescribeQueueName).To(Equal(queueName))
+			Expect(user.CreateCalled).To(BeTrue())
+			Expect(user.CreateUserName).To(Equal(userName))
 			Expect(user.CreateAccessKeyCalled).To(BeTrue())
 			Expect(user.CreateAccessKeyUserName).To(Equal(userName))
 			Expect(user.DescribeCalled).To(BeTrue())
@@ -820,8 +824,8 @@ var _ = Describe("SQS Broker", func() {
 			Expect(queue.AddPermissionCalled).To(BeTrue())
 			Expect(queue.AddPermissionQueueName).To(Equal(queueName))
 			Expect(queue.AddPermissionQueueLabel).To(Equal(queueLabel))
-			Expect(queue.AddPermissionAccountIds).To(Equal([]string{"user-arn"}))
-			Expect(queue.AddPermissionActions).To(Equal([]string{"*"}))
+			Expect(queue.AddPermissionUserARN).To(Equal("user-arn"))
+			Expect(queue.AddPermissionAction).To(Equal("*"))
 			Expect(user.DeleteCalled).To(BeFalse())
 			Expect(user.DeleteAccessKeyCalled).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
