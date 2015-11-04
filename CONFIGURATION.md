@@ -75,7 +75,7 @@ Please refer to the [Amazon Simple Queue Service Documentation](https://aws.amaz
 | delay_seconds                     | N        | String | The time in seconds that the delivery of all messages in the queue will be delayed
 | maximum_message_size              | N        | String | The limit of how many bytes a message can contain before Amazon SQS rejects it
 | message_retention_period          | N        | String | The number of seconds Amazon SQS retains a message
-| policy                            | N        | String | TThe queue's policy
+| policy                            | N        | String | The queue's policy
 | receive_message_wait_time_seconds | N        | String | The time for which a ReceiveMessage call will wait for a message to arrive
 | visibility_timeout                | N        | String | The visibility timeout for the queue
 
