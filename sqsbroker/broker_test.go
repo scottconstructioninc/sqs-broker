@@ -308,6 +308,18 @@ var _ = Describe("SQS Broker", func() {
 			})
 		})
 
+		Context("when has Policy", func() {
+			BeforeEach(func() {
+				sqsProperties1.Policy = "test-policy"
+			})
+
+			It("makes the proper calls", func() {
+				_, _, err := sqsBroker.Provision(instanceID, provisionDetails, acceptsIncomplete)
+				Expect(queue.CreateQueueDetails.Policy).To(Equal("test-policy"))
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
 		Context("when has ReceiveMessageWaitTimeSeconds", func() {
 			BeforeEach(func() {
 				sqsProperties1.ReceiveMessageWaitTimeSeconds = "test-receive-message-wait-time-seconds"
@@ -572,6 +584,18 @@ var _ = Describe("SQS Broker", func() {
 						Expect(err).ToNot(HaveOccurred())
 					})
 				})
+			})
+		})
+
+		Context("when has Policy", func() {
+			BeforeEach(func() {
+				sqsProperties2.Policy = "test-policy"
+			})
+
+			It("makes the proper calls", func() {
+				_, err := sqsBroker.Update(instanceID, updateDetails, acceptsIncomplete)
+				Expect(queue.ModifyQueueDetails.Policy).To(Equal("test-policy"))
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 

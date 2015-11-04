@@ -63,6 +63,7 @@ type SQSProperties struct {
 	DelaySeconds                  string `json:"delay_seconds,omitempty"`
 	MaximumMessageSize            string `json:"maximum_message_size,omitempty"`
 	MessageRetentionPeriod        string `json:"message_retention_period,omitempty"`
+	Policy                        string `json:"policy,omitempty"`
 	ReceiveMessageWaitTimeSeconds string `json:"receive_message_wait_time_seconds,omitempty"`
 	VisibilityTimeout             string `json:"visibility_timeout,omitempty"`
 }

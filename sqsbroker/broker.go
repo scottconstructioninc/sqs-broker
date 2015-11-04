@@ -332,9 +332,10 @@ func (b *SQSBroker) modifyQueueDetails(instanceID string, servicePlan ServicePla
 
 func (b *SQSBroker) queueDetailsFromPlan(servicePlan ServicePlan) *awssqs.QueueDetails {
 	queueDetails := &awssqs.QueueDetails{
-		DelaySeconds:                  servicePlan.SQSProperties.DelaySeconds,
-		MaximumMessageSize:            servicePlan.SQSProperties.MaximumMessageSize,
-		MessageRetentionPeriod:        servicePlan.SQSProperties.MessageRetentionPeriod,
+		DelaySeconds:           servicePlan.SQSProperties.DelaySeconds,
+		MaximumMessageSize:     servicePlan.SQSProperties.MaximumMessageSize,
+		MessageRetentionPeriod: servicePlan.SQSProperties.MessageRetentionPeriod,
+		Policy:                 servicePlan.SQSProperties.Policy,
 		ReceiveMessageWaitTimeSeconds: servicePlan.SQSProperties.ReceiveMessageWaitTimeSeconds,
 		VisibilityTimeout:             servicePlan.SQSProperties.VisibilityTimeout,
 	}
