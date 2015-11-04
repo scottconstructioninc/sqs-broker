@@ -13,6 +13,7 @@ type FakeQueue struct {
 	CreateCalled       bool
 	CreateQueueName    string
 	CreateQueueDetails awssqs.QueueDetails
+	CreateQueueURL     string
 	CreateError        error
 
 	ModifyCalled       bool
@@ -23,18 +24,6 @@ type FakeQueue struct {
 	DeleteCalled    bool
 	DeleteQueueName string
 	DeleteError     error
-
-	AddPermissionCalled     bool
-	AddPermissionQueueName  string
-	AddPermissionQueueLabel string
-	AddPermissionUserARN    string
-	AddPermissionAction     string
-	AddPermissionError      error
-
-	RemovePermissionCalled     bool
-	RemovePermissionQueueName  string
-	RemovePermissionQueueLabel string
-	RemovePermissionError      error
 }
 
 func (f *FakeQueue) Describe(queueName string) (awssqs.QueueDetails, error) {
@@ -44,12 +33,12 @@ func (f *FakeQueue) Describe(queueName string) (awssqs.QueueDetails, error) {
 	return f.DescribeQueueDetails, f.DescribeError
 }
 
-func (f *FakeQueue) Create(queueName string, queueDetails awssqs.QueueDetails) error {
+func (f *FakeQueue) Create(queueName string, queueDetails awssqs.QueueDetails) (string, error) {
 	f.CreateCalled = true
 	f.CreateQueueName = queueName
 	f.CreateQueueDetails = queueDetails
 
-	return f.CreateError
+	return f.CreateQueueURL, f.CreateError
 }
 
 func (f *FakeQueue) Modify(queueName string, queueDetails awssqs.QueueDetails) error {
@@ -65,22 +54,4 @@ func (f *FakeQueue) Delete(queueName string) error {
 	f.DeleteQueueName = queueName
 
 	return f.DeleteError
-}
-
-func (f *FakeQueue) AddPermission(queueName string, label string, userARN string, action string) error {
-	f.AddPermissionCalled = true
-	f.AddPermissionQueueName = queueName
-	f.AddPermissionQueueLabel = label
-	f.AddPermissionUserARN = userARN
-	f.AddPermissionAction = action
-
-	return f.AddPermissionError
-}
-
-func (f *FakeQueue) RemovePermission(queueName string, label string) error {
-	f.RemovePermissionCalled = true
-	f.RemovePermissionQueueName = queueName
-	f.RemovePermissionQueueLabel = label
-
-	return f.RemovePermissionError
 }

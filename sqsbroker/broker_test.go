@@ -46,7 +46,7 @@ var _ = Describe("SQS Broker", func() {
 		instanceID = "instance-id"
 		bindingID  = "binding-id"
 		queueName  = "cf-instance-id"
-		queueLabel = "cf-binding-id"
+		policyName = "cf-binding-id"
 		userName   = "cf-binding-id"
 	)
 
@@ -786,14 +786,17 @@ var _ = Describe("SQS Broker", func() {
 
 			queue.DescribeQueueDetails = awssqs.QueueDetails{
 				QueueURL: "queue-url",
+				QueueArn: "queue-arn",
 			}
 
 			user.CreateAccessKeyAccessKeyID = "user-access-key-id"
 			user.CreateAccessKeySecretAccessKey = "user-secret-access-key"
 
+			user.CreatePolicyPolicyARN = "policy-arn"
+
 			user.DescribeUserDetails = awsiam.UserDetails{
 				UserName: userName,
-				ARN:      "user-arn",
+				UserARN:  "user-arn",
 			}
 		})
 
@@ -819,15 +822,17 @@ var _ = Describe("SQS Broker", func() {
 			Expect(user.CreateUserName).To(Equal(userName))
 			Expect(user.CreateAccessKeyCalled).To(BeTrue())
 			Expect(user.CreateAccessKeyUserName).To(Equal(userName))
-			Expect(user.DescribeCalled).To(BeTrue())
-			Expect(user.DescribeUserName).To(Equal(userName))
-			Expect(queue.AddPermissionCalled).To(BeTrue())
-			Expect(queue.AddPermissionQueueName).To(Equal(queueName))
-			Expect(queue.AddPermissionQueueLabel).To(Equal(queueLabel))
-			Expect(queue.AddPermissionUserARN).To(Equal("user-arn"))
-			Expect(queue.AddPermissionAction).To(Equal("*"))
+			Expect(user.CreatePolicyCalled).To(BeTrue())
+			Expect(user.CreatePolicyPolicyName).To(Equal(policyName))
+			Expect(user.CreatePolicyEffect).To(Equal("Allow"))
+			Expect(user.CreatePolicyAction).To(Equal("sqs:*"))
+			Expect(user.CreatePolicyResource).To(Equal("queue-arn"))
+			Expect(user.AttachUserPolicyCalled).To(BeTrue())
+			Expect(user.AttachUserPolicyUserName).To(Equal(userName))
+			Expect(user.AttachUserPolicyPolicyARN).To(Equal("policy-arn"))
 			Expect(user.DeleteCalled).To(BeFalse())
 			Expect(user.DeleteAccessKeyCalled).To(BeFalse())
+			Expect(user.DeletePolicyCalled).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -865,9 +870,21 @@ var _ = Describe("SQS Broker", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("operation failed"))
 			})
+
+			Context("when the Queue does not exists", func() {
+				BeforeEach(func() {
+					queue.DescribeError = awssqs.ErrQueueDoesNotExist
+				})
+
+				It("returns the proper error", func() {
+					_, err := sqsBroker.Bind(instanceID, bindingID, bindDetails)
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(Equal(brokerapi.ErrInstanceDoesNotExist))
+				})
+			})
 		})
 
-		Context("when creating User fails", func() {
+		Context("when creating the User fails", func() {
 			BeforeEach(func() {
 				user.CreateError = errors.New("operation failed")
 			})
@@ -879,7 +896,7 @@ var _ = Describe("SQS Broker", func() {
 			})
 		})
 
-		Context("when creating User Access Keys fails", func() {
+		Context("when creating the User Access Keys fails", func() {
 			BeforeEach(func() {
 				user.CreateAccessKeyError = errors.New("operation failed")
 			})
@@ -898,9 +915,9 @@ var _ = Describe("SQS Broker", func() {
 			})
 		})
 
-		Context("when describing User fails", func() {
+		Context("when creating the User Policy fails", func() {
 			BeforeEach(func() {
-				user.DescribeError = errors.New("operation failed")
+				user.CreatePolicyError = errors.New("operation failed")
 			})
 
 			It("returns the proper error", func() {
@@ -920,9 +937,9 @@ var _ = Describe("SQS Broker", func() {
 			})
 		})
 
-		Context("when Adding Permissions fails", func() {
+		Context("when attaching the Policy to the User fails", func() {
 			BeforeEach(func() {
-				queue.AddPermissionError = errors.New("operation failed")
+				user.AttachUserPolicyError = errors.New("operation failed")
 			})
 
 			It("returns the proper error", func() {
@@ -934,23 +951,13 @@ var _ = Describe("SQS Broker", func() {
 			It("makes the proper calls", func() {
 				_, err := sqsBroker.Bind(instanceID, bindingID, bindDetails)
 				Expect(err).To(HaveOccurred())
+				Expect(user.DeletePolicyCalled).To(BeTrue())
+				Expect(user.DeletePolicyPolicyARN).To(Equal("policy-arn"))
 				Expect(user.DeleteAccessKeyCalled).To(BeTrue())
 				Expect(user.DeleteAccessKeyUserName).To(Equal(userName))
 				Expect(user.DeleteAccessKeyAccessKeyID).To(Equal("user-access-key-id"))
 				Expect(user.DeleteCalled).To(BeTrue())
 				Expect(user.DeleteUserName).To(Equal(userName))
-			})
-
-			Context("when the Queue does not exists", func() {
-				BeforeEach(func() {
-					queue.AddPermissionError = awssqs.ErrQueueDoesNotExist
-				})
-
-				It("returns the proper error", func() {
-					_, err := sqsBroker.Bind(instanceID, bindingID, bindDetails)
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(brokerapi.ErrInstanceDoesNotExist))
-				})
 			})
 		})
 	})
@@ -969,38 +976,13 @@ var _ = Describe("SQS Broker", func() {
 
 		It("makes the proper calls", func() {
 			err := sqsBroker.Unbind(instanceID, bindingID, unbindDetails)
-			Expect(queue.RemovePermissionCalled).To(BeTrue())
-			Expect(queue.RemovePermissionQueueName).To(Equal(queueName))
-			Expect(queue.RemovePermissionQueueLabel).To(Equal(queueLabel))
 			Expect(user.ListAccessKeysCalled).To(BeTrue())
 			Expect(user.ListAccessKeysUserName).To(Equal(userName))
+			Expect(user.ListAttachedUserPoliciesCalled).To(BeTrue())
+			Expect(user.ListAttachedUserPoliciesUserName).To(Equal(userName))
 			Expect(user.DeleteCalled).To(BeTrue())
 			Expect(user.DeleteUserName).To(Equal(userName))
 			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when removing Permissions fails", func() {
-			BeforeEach(func() {
-				queue.RemovePermissionError = errors.New("operation failed")
-			})
-
-			It("returns the proper error", func() {
-				err := sqsBroker.Unbind(instanceID, bindingID, unbindDetails)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("operation failed"))
-			})
-
-			Context("when the Queue does not exists", func() {
-				BeforeEach(func() {
-					queue.RemovePermissionError = awssqs.ErrQueueDoesNotExist
-				})
-
-				It("returns the proper error", func() {
-					err := sqsBroker.Unbind(instanceID, bindingID, unbindDetails)
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(Equal(brokerapi.ErrInstanceDoesNotExist))
-				})
-			})
 		})
 
 		Context("when listing the User Access Keys fails", func() {
@@ -1031,6 +1013,58 @@ var _ = Describe("SQS Broker", func() {
 			Context("when deleting the User Access Keys fails", func() {
 				BeforeEach(func() {
 					user.DeleteAccessKeyError = errors.New("operation failed")
+				})
+
+				It("returns the proper error", func() {
+					err := sqsBroker.Unbind(instanceID, bindingID, unbindDetails)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("operation failed"))
+				})
+			})
+		})
+
+		Context("when listing the User Attached Policies fails", func() {
+			BeforeEach(func() {
+				user.ListAttachedUserPoliciesError = errors.New("operation failed")
+			})
+
+			It("returns the proper error", func() {
+				err := sqsBroker.Unbind(instanceID, bindingID, unbindDetails)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("operation failed"))
+			})
+		})
+
+		Context("when User has Attached Policies", func() {
+			BeforeEach(func() {
+				user.ListAttachedUserPoliciesUserPolicies = []string{"user-policy-arn-1"}
+			})
+
+			It("makes the proper calls", func() {
+				err := sqsBroker.Unbind(instanceID, bindingID, unbindDetails)
+				Expect(user.DetachUserPolicyCalled).To(BeTrue())
+				Expect(user.DetachUserPolicyUserName).To(Equal(userName))
+				Expect(user.DetachUserPolicyPolicyARN).To(Equal("user-policy-arn-1"))
+				Expect(user.DeletePolicyCalled).To(BeTrue())
+				Expect(user.DeletePolicyPolicyARN).To(Equal("user-policy-arn-1"))
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			Context("when detaching the User Policies fails", func() {
+				BeforeEach(func() {
+					user.DetachUserPolicyError = errors.New("operation failed")
+				})
+
+				It("returns the proper error", func() {
+					err := sqsBroker.Unbind(instanceID, bindingID, unbindDetails)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("operation failed"))
+				})
+			})
+
+			Context("when deleting the User Policy fails", func() {
+				BeforeEach(func() {
+					user.DeletePolicyError = errors.New("operation failed")
 				})
 
 				It("returns the proper error", func() {

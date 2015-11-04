@@ -6,11 +6,9 @@ import (
 
 type Queue interface {
 	Describe(queueName string) (QueueDetails, error)
-	Create(queueName string, queueDetails QueueDetails) error
+	Create(queueName string, queueDetails QueueDetails) (string, error)
 	Modify(queueName string, queueDetails QueueDetails) error
 	Delete(queueName string) error
-	AddPermission(queueName string, label string, userARN string, action string) error
-	RemovePermission(queueName string, label string) error
 }
 
 type QueueDetails struct {

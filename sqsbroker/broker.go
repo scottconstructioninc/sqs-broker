@@ -87,7 +87,7 @@ func (b *SQSBroker) Provision(instanceID string, details brokerapi.ProvisionDeta
 	}
 
 	createQueueDetails := b.createQueueDetails(instanceID, servicePlan, provisionParameters, details)
-	if err := b.queue.Create(b.queueName(instanceID), *createQueueDetails); err != nil {
+	if _, err := b.queue.Create(b.queueName(instanceID), *createQueueDetails); err != nil {
 		return provisioningResponse, false, err
 	}
 
@@ -153,6 +153,7 @@ func (b *SQSBroker) Deprovision(instanceID string, details brokerapi.Deprovision
 func (b *SQSBroker) Bind(instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.BindingResponse, error) {
 	var err error
 	var accessKeyID, secretAccessKey string
+	var policyARN string
 
 	b.logger.Debug("bind", lager.Data{
 		instanceIDLogKey: instanceID,
@@ -179,11 +180,14 @@ func (b *SQSBroker) Bind(instanceID, bindingID string, details brokerapi.BindDet
 		return bindingResponse, err
 	}
 
-	if err = b.user.Create(b.userName(bindingID)); err != nil {
+	if _, err = b.user.Create(b.userName(bindingID)); err != nil {
 		return bindingResponse, err
 	}
 	defer func() {
 		if err != nil {
+			if policyARN != "" {
+				b.user.DeletePolicy(policyARN)
+			}
 			if accessKeyID != "" {
 				b.user.DeleteAccessKey(b.userName(bindingID), accessKeyID)
 			}
@@ -196,16 +200,12 @@ func (b *SQSBroker) Bind(instanceID, bindingID string, details brokerapi.BindDet
 		return bindingResponse, err
 	}
 
-	var userDetails awsiam.UserDetails
-	userDetails, err = b.user.Describe(b.userName(bindingID))
+	policyARN, err = b.user.CreatePolicy(b.policyName(bindingID), "Allow", "sqs:*", queueDetails.QueueArn)
 	if err != nil {
 		return bindingResponse, err
 	}
 
-	if err = b.queue.AddPermission(b.queueName(instanceID), b.queueLabel(bindingID), userDetails.ARN, "*"); err != nil {
-		if err == awssqs.ErrQueueDoesNotExist {
-			return bindingResponse, brokerapi.ErrInstanceDoesNotExist
-		}
+	if err = b.user.AttachUserPolicy(b.userName(bindingID), policyARN); err != nil {
 		return bindingResponse, err
 	}
 
@@ -225,13 +225,6 @@ func (b *SQSBroker) Unbind(instanceID, bindingID string, details brokerapi.Unbin
 		detailsLogKey:    details,
 	})
 
-	if err := b.queue.RemovePermission(b.queueName(instanceID), b.queueLabel(bindingID)); err != nil {
-		if err == awssqs.ErrQueueDoesNotExist {
-			return brokerapi.ErrInstanceDoesNotExist
-		}
-		return err
-	}
-
 	accessKeys, err := b.user.ListAccessKeys(b.userName(bindingID))
 	if err != nil {
 		return err
@@ -239,6 +232,21 @@ func (b *SQSBroker) Unbind(instanceID, bindingID string, details brokerapi.Unbin
 
 	for _, accessKey := range accessKeys {
 		if err := b.user.DeleteAccessKey(b.userName(bindingID), accessKey); err != nil {
+			return err
+		}
+	}
+
+	userPolicies, err := b.user.ListAttachedUserPolicies(b.userName(bindingID))
+	if err != nil {
+		return err
+	}
+
+	for _, userPolicy := range userPolicies {
+		if err := b.user.DetachUserPolicy(b.userName(bindingID), userPolicy); err != nil {
+			return err
+		}
+
+		if err := b.user.DeletePolicy(userPolicy); err != nil {
 			return err
 		}
 	}
@@ -262,11 +270,11 @@ func (b *SQSBroker) queueName(instanceID string) string {
 	return fmt.Sprintf("%s-%s", b.sqsPrefix, instanceID)
 }
 
-func (b *SQSBroker) queueLabel(bindingID string) string {
+func (b *SQSBroker) userName(bindingID string) string {
 	return fmt.Sprintf("%s-%s", b.sqsPrefix, bindingID)
 }
 
-func (b *SQSBroker) userName(bindingID string) string {
+func (b *SQSBroker) policyName(bindingID string) string {
 	return fmt.Sprintf("%s-%s", b.sqsPrefix, bindingID)
 }
 

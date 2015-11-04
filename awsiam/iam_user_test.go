@@ -59,7 +59,7 @@ var _ = Describe("IAM User", func() {
 		BeforeEach(func() {
 			properUserDetails = UserDetails{
 				UserName: userName,
-				ARN:      "user-arn",
+				UserARN:  "user-arn",
 				UserID:   "user-id",
 			}
 
@@ -139,13 +139,18 @@ var _ = Describe("IAM User", func() {
 				Expect(r.Operation.Name).To(Equal("CreateUser"))
 				Expect(r.Params).To(BeAssignableToTypeOf(&iam.CreateUserInput{}))
 				Expect(r.Params).To(Equal(createUserInput))
+				data := r.Data.(*iam.CreateUserOutput)
+				data.User = &iam.User{
+					Arn: aws.String("user-arn"),
+				}
 				r.Error = createUserError
 			}
 			iamsvc.Handlers.Send.PushBack(iamCall)
 		})
 
 		It("creates the User", func() {
-			err := user.Create(userName)
+			userARN, err := user.Create(userName)
+			Expect(userARN).To(Equal("user-arn"))
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -155,7 +160,7 @@ var _ = Describe("IAM User", func() {
 			})
 
 			It("returns the proper error", func() {
-				err := user.Create(userName)
+				_, err := user.Create(userName)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("operation failed"))
 			})
@@ -166,7 +171,7 @@ var _ = Describe("IAM User", func() {
 				})
 
 				It("returns the proper error", func() {
-					err := user.Create(userName)
+					_, err := user.Create(userName)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("code: message"))
 				})
@@ -267,13 +272,13 @@ var _ = Describe("IAM User", func() {
 			iamsvc.Handlers.Send.PushBack(iamCall)
 		})
 
-		It("creates the Access Key", func() {
+		It("lists the User Access Key", func() {
 			accessKeys, err := user.ListAccessKeys(userName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(accessKeys).To(Equal([]string{"access-key-id-1", "access-key-id-2"}))
 		})
 
-		Context("when creating the Access Key fails", func() {
+		Context("when listing the User Access Key fails", func() {
 			BeforeEach(func() {
 				listAccessKeysError = errors.New("operation failed")
 			})
@@ -418,6 +423,329 @@ var _ = Describe("IAM User", func() {
 
 				It("returns the proper error", func() {
 					err := user.DeleteAccessKey(userName, accessKeyID)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("code: message"))
+				})
+			})
+		})
+	})
+
+	var _ = Describe("CreatePolicy", func() {
+		var (
+			policyName string
+			effect     string
+			action     string
+			resource   string
+
+			createPolicy *iam.Policy
+
+			createPolicyInput *iam.CreatePolicyInput
+			createPolicyError error
+		)
+
+		BeforeEach(func() {
+			policyName = "policy-name"
+			effect = "effect"
+			action = "action"
+			resource = "resource"
+
+			createPolicy = &iam.Policy{
+				Arn: aws.String("policy-arn"),
+			}
+
+			createPolicyInput = &iam.CreatePolicyInput{
+				PolicyName:     aws.String(policyName),
+				PolicyDocument: aws.String("{\"Version\":\"2012-10-17\",\"Id\":\"" + policyName + "\",\"Statement\":[{\"Sid\":\"1\",\"Effect\":\"" + effect + "\",\"Action\":\"" + action + "\",\"Resource\":\"" + resource + "\"}]}"),
+			}
+			createPolicyError = nil
+		})
+
+		JustBeforeEach(func() {
+			iamsvc.Handlers.Clear()
+
+			iamCall = func(r *request.Request) {
+				Expect(r.Operation.Name).To(Equal("CreatePolicy"))
+				Expect(r.Params).To(BeAssignableToTypeOf(&iam.CreatePolicyInput{}))
+				Expect(r.Params).To(Equal(createPolicyInput))
+				data := r.Data.(*iam.CreatePolicyOutput)
+				data.Policy = createPolicy
+				r.Error = createPolicyError
+			}
+			iamsvc.Handlers.Send.PushBack(iamCall)
+		})
+
+		It("creates the Access Key", func() {
+			policyARN, err := user.CreatePolicy(policyName, effect, action, resource)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(policyARN).To(Equal("policy-arn"))
+		})
+
+		Context("when creating the Policy fails", func() {
+			BeforeEach(func() {
+				createPolicyError = errors.New("operation failed")
+			})
+
+			It("returns the proper error", func() {
+				_, err := user.CreatePolicy(policyName, effect, action, resource)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("operation failed"))
+			})
+
+			Context("and it is an AWS error", func() {
+				BeforeEach(func() {
+					createPolicyError = awserr.New("code", "message", errors.New("operation failed"))
+				})
+
+				It("returns the proper error", func() {
+					_, err := user.CreatePolicy(policyName, effect, action, resource)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("code: message"))
+				})
+			})
+		})
+	})
+
+	var _ = Describe("DeletePolicy", func() {
+		var (
+			policyARN string
+
+			deletePolicyInput *iam.DeletePolicyInput
+			deletePolicyError error
+		)
+
+		BeforeEach(func() {
+			policyARN = "policy-arn"
+
+			deletePolicyInput = &iam.DeletePolicyInput{
+				PolicyArn: aws.String(policyARN),
+			}
+			deletePolicyError = nil
+		})
+
+		JustBeforeEach(func() {
+			iamsvc.Handlers.Clear()
+
+			iamCall = func(r *request.Request) {
+				Expect(r.Operation.Name).To(Equal("DeletePolicy"))
+				Expect(r.Params).To(BeAssignableToTypeOf(&iam.DeletePolicyInput{}))
+				Expect(r.Params).To(Equal(deletePolicyInput))
+				r.Error = deletePolicyError
+			}
+			iamsvc.Handlers.Send.PushBack(iamCall)
+		})
+
+		It("deletes the Policy", func() {
+			err := user.DeletePolicy(policyARN)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when deleting the Policy fails", func() {
+			BeforeEach(func() {
+				deletePolicyError = errors.New("operation failed")
+			})
+
+			It("returns the proper error", func() {
+				err := user.DeletePolicy(policyARN)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("operation failed"))
+			})
+
+			Context("and it is an AWS error", func() {
+				BeforeEach(func() {
+					deletePolicyError = awserr.New("code", "message", errors.New("operation failed"))
+				})
+
+				It("returns the proper error", func() {
+					err := user.DeletePolicy(policyARN)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("code: message"))
+				})
+			})
+		})
+	})
+
+	var _ = Describe("ListAttachedUserPolicies", func() {
+		var (
+			listAttachedUserPoliciesAttachedPolicies []*iam.AttachedPolicy
+
+			listAttachedUserPoliciesInput *iam.ListAttachedUserPoliciesInput
+			listAttachedUserPoliciesError error
+		)
+
+		BeforeEach(func() {
+			listAttachedUserPoliciesAttachedPolicies = []*iam.AttachedPolicy{
+				&iam.AttachedPolicy{
+					PolicyArn: aws.String("user-policy-1"),
+				},
+				&iam.AttachedPolicy{
+					PolicyArn: aws.String("user-policy-2"),
+				},
+			}
+
+			listAttachedUserPoliciesInput = &iam.ListAttachedUserPoliciesInput{
+				UserName: aws.String(userName),
+			}
+			listAttachedUserPoliciesError = nil
+		})
+
+		JustBeforeEach(func() {
+			iamsvc.Handlers.Clear()
+
+			iamCall = func(r *request.Request) {
+				Expect(r.Operation.Name).To(Equal("ListAttachedUserPolicies"))
+				Expect(r.Params).To(BeAssignableToTypeOf(&iam.ListAttachedUserPoliciesInput{}))
+				Expect(r.Params).To(Equal(listAttachedUserPoliciesInput))
+				data := r.Data.(*iam.ListAttachedUserPoliciesOutput)
+				data.AttachedPolicies = listAttachedUserPoliciesAttachedPolicies
+				r.Error = listAttachedUserPoliciesError
+			}
+			iamsvc.Handlers.Send.PushBack(iamCall)
+		})
+
+		It("lists the Attached User Policies", func() {
+			attachedUserPolicies, err := user.ListAttachedUserPolicies(userName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(attachedUserPolicies).To(Equal([]string{"user-policy-1", "user-policy-2"}))
+		})
+
+		Context("when listing the Attached User Policies fails", func() {
+			BeforeEach(func() {
+				listAttachedUserPoliciesError = errors.New("operation failed")
+			})
+
+			It("returns the proper error", func() {
+				_, err := user.ListAttachedUserPolicies(userName)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("operation failed"))
+			})
+
+			Context("and it is an AWS error", func() {
+				BeforeEach(func() {
+					listAttachedUserPoliciesError = awserr.New("code", "message", errors.New("operation failed"))
+				})
+
+				It("returns the proper error", func() {
+					_, err := user.ListAttachedUserPolicies(userName)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("code: message"))
+				})
+			})
+		})
+	})
+
+	var _ = Describe("AttachUserPolicy", func() {
+		var (
+			policyARN string
+
+			attachUserPolicyInput *iam.AttachUserPolicyInput
+			attachUserPolicyError error
+		)
+
+		BeforeEach(func() {
+			policyARN = "policy-arn"
+
+			attachUserPolicyInput = &iam.AttachUserPolicyInput{
+				PolicyArn: aws.String(policyARN),
+				UserName:  aws.String(userName),
+			}
+			attachUserPolicyError = nil
+		})
+
+		JustBeforeEach(func() {
+			iamsvc.Handlers.Clear()
+
+			iamCall = func(r *request.Request) {
+				Expect(r.Operation.Name).To(Equal("AttachUserPolicy"))
+				Expect(r.Params).To(BeAssignableToTypeOf(&iam.AttachUserPolicyInput{}))
+				Expect(r.Params).To(Equal(attachUserPolicyInput))
+				r.Error = attachUserPolicyError
+			}
+			iamsvc.Handlers.Send.PushBack(iamCall)
+		})
+
+		It("attaches the Policy to the User", func() {
+			err := user.AttachUserPolicy(userName, policyARN)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when attaching the Policy to the User fails", func() {
+			BeforeEach(func() {
+				attachUserPolicyError = errors.New("operation failed")
+			})
+
+			It("returns the proper error", func() {
+				err := user.AttachUserPolicy(userName, policyARN)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("operation failed"))
+			})
+
+			Context("and it is an AWS error", func() {
+				BeforeEach(func() {
+					attachUserPolicyError = awserr.New("code", "message", errors.New("operation failed"))
+				})
+
+				It("returns the proper error", func() {
+					err := user.AttachUserPolicy(userName, policyARN)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("code: message"))
+				})
+			})
+		})
+	})
+
+	var _ = Describe("DetachUserPolicy", func() {
+		var (
+			policyARN string
+
+			detachUserPolicyInput *iam.DetachUserPolicyInput
+			detachUserPolicyError error
+		)
+
+		BeforeEach(func() {
+			policyARN = "policy-arn"
+
+			detachUserPolicyInput = &iam.DetachUserPolicyInput{
+				PolicyArn: aws.String(policyARN),
+				UserName:  aws.String(userName),
+			}
+			detachUserPolicyError = nil
+		})
+
+		JustBeforeEach(func() {
+			iamsvc.Handlers.Clear()
+
+			iamCall = func(r *request.Request) {
+				Expect(r.Operation.Name).To(Equal("DetachUserPolicy"))
+				Expect(r.Params).To(BeAssignableToTypeOf(&iam.DetachUserPolicyInput{}))
+				Expect(r.Params).To(Equal(detachUserPolicyInput))
+				r.Error = detachUserPolicyError
+			}
+			iamsvc.Handlers.Send.PushBack(iamCall)
+		})
+
+		It("detaches the Policy from the User", func() {
+			err := user.DetachUserPolicy(userName, policyARN)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when detaching the Policy from the User fails", func() {
+			BeforeEach(func() {
+				detachUserPolicyError = errors.New("operation failed")
+			})
+
+			It("returns the proper error", func() {
+				err := user.DetachUserPolicy(userName, policyARN)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("operation failed"))
+			})
+
+			Context("and it is an AWS error", func() {
+				BeforeEach(func() {
+					detachUserPolicyError = awserr.New("code", "message", errors.New("operation failed"))
+				})
+
+				It("returns the proper error", func() {
+					err := user.DetachUserPolicy(userName, policyARN)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("code: message"))
 				})

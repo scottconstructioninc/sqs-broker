@@ -1,7 +1,6 @@
 package awssqs
 
 import (
-	"encoding/json"
 	"errors"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -9,20 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/pivotal-golang/lager"
 )
-
-type QueuePolicy struct {
-	Version   string
-	Id        string
-	Statement []QueuePolicyStatement
-}
-
-type QueuePolicyStatement struct {
-	Sid       string
-	Effect    string
-	Principal map[string]string
-	Action    string
-	Resource  string
-}
 
 type SQSQueue struct {
 	sqssvc *sqs.SQS
@@ -55,7 +40,7 @@ func (s *SQSQueue) Describe(queueName string) (QueueDetails, error) {
 	return s.buildQueueDetails(queueURL, queueAttributes), nil
 }
 
-func (s *SQSQueue) Create(queueName string, queueDetails QueueDetails) error {
+func (s *SQSQueue) Create(queueName string, queueDetails QueueDetails) (string, error) {
 	createQueueInput := s.buildCreateQueueInput(queueName, queueDetails)
 	s.logger.Debug("create-queue", lager.Data{"input": createQueueInput})
 
@@ -63,13 +48,13 @@ func (s *SQSQueue) Create(queueName string, queueDetails QueueDetails) error {
 	if err != nil {
 		s.logger.Error("aws-sqs-error", err)
 		if awsErr, ok := err.(awserr.Error); ok {
-			return errors.New(awsErr.Code() + ": " + awsErr.Message())
+			return "", errors.New(awsErr.Code() + ": " + awsErr.Message())
 		}
-		return err
+		return "", err
 	}
 	s.logger.Debug("create-queue", lager.Data{"output": createQueueOutput})
 
-	return nil
+	return aws.StringValue(createQueueOutput.QueueUrl), nil
 }
 
 func (s *SQSQueue) Modify(queueName string, queueDetails QueueDetails) error {
@@ -112,70 +97,6 @@ func (s *SQSQueue) Delete(queueName string) error {
 		return err
 	}
 	s.logger.Debug("delete-queue", lager.Data{"output": deleteQueueOutput})
-
-	return nil
-}
-
-func (s *SQSQueue) AddPermission(queueName string, label string, userARN string, action string) error {
-	queueDetails, err := s.Describe(queueName)
-	if err != nil {
-		return err
-	}
-
-	queuePolicyStatement := s.buildQueuePolicyStatement(label, userARN, action, queueDetails.QueueArn)
-	if queueDetails.Policy != "" {
-		policy := QueuePolicy{}
-		if err = json.Unmarshal([]byte(queueDetails.Policy), &policy); err != nil {
-			return err
-		}
-
-		policy.Statement = append(policy.Statement, queuePolicyStatement)
-		queueDetails.Policy, err = s.buildQueuePolicy(policy.Statement)
-		if err != nil {
-			return err
-		}
-	} else {
-		queueDetails.Policy, err = s.buildQueuePolicy([]QueuePolicyStatement{queuePolicyStatement})
-		if err != nil {
-			return err
-		}
-	}
-
-	err = s.setQueueAttributes(queueDetails.QueueURL, queueDetails)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *SQSQueue) RemovePermission(queueName string, label string) error {
-	queueURL, err := s.getQueueURL(queueName)
-	if err != nil {
-		return err
-	}
-
-	removePermissionInput := &sqs.RemovePermissionInput{
-		QueueUrl: aws.String(queueURL),
-		Label:    aws.String(label),
-	}
-	s.logger.Debug("remove-permission", lager.Data{"input": removePermissionInput})
-
-	removePermissionOutput, err := s.sqssvc.RemovePermission(removePermissionInput)
-	if err != nil {
-		s.logger.Error("aws-sqs-error", err)
-		if awsErr, ok := err.(awserr.Error); ok {
-			if reqErr, ok := err.(awserr.RequestFailure); ok {
-				// AWS SQS returns a 400 if Queue is not found
-				if reqErr.StatusCode() == 400 || reqErr.StatusCode() == 404 {
-					return ErrQueueDoesNotExist
-				}
-			}
-			return errors.New(awsErr.Code() + ": " + awsErr.Message())
-		}
-		return err
-	}
-	s.logger.Debug("remove-permission", lager.Data{"output": removePermissionOutput})
 
 	return nil
 }
@@ -333,33 +254,4 @@ func (s *SQSQueue) buildSetQueueAttributesInput(queueURL string, queueDetails Qu
 	}
 
 	return setQueueAttributesInput
-}
-
-func (s *SQSQueue) buildQueuePolicy(queuePolicyStatements []QueuePolicyStatement) (string, error) {
-	queuePolicy := QueuePolicy{
-		Version:   "2012-10-17",
-		Id:        "SQSQueuePolicy",
-		Statement: queuePolicyStatements,
-	}
-
-	policy, err := json.Marshal(queuePolicy)
-	if err != nil {
-		return "", err
-	}
-
-	return string(policy), nil
-}
-
-func (s *SQSQueue) buildQueuePolicyStatement(policyID string, userARN string, action string, queueARN string) QueuePolicyStatement {
-	queuePolicyStatement := QueuePolicyStatement{
-		Sid:    policyID,
-		Effect: "Allow",
-		Principal: map[string]string{
-			"AWS": userARN,
-		},
-		Action:   "sqs:" + action,
-		Resource: queueARN,
-	}
-
-	return queuePolicyStatement
 }
