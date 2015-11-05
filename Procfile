@@ -1,1 +1,1 @@
-web: sqs-broker --config=config-sample.json -port=$PORT
+web: sqs-broker --config=config.json -port=$PORT
