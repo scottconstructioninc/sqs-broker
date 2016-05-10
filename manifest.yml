@@ -4,5 +4,15 @@ applications:
     disk_quota: 256M
     buildpack: go_buildpack
     env:
-      AWS_ACCESS_KEY_ID: "your-aws-access-key-id"
-      AWS_SECRET_ACCESS_KEY: "your-aws-secret-access-key"
+      AUTH_USER: user
+      AUTH_PASS: pass
+      AWS_ACCESS_KEY_ID: "AKIAJPQBDSI4RQMF74IA"
+      AWS_SECRET_ACCESS_KEY: "WC2Zf+sx1+cl7JqoN5SO6d1hSvYMRsjwK0XAIE+e"
+      DB_NAME: broker-test
+      DB_PASS: rds
+      DB_PORT: 5524
+      DB_SSLMODE: verify-ca
+      DB_TYPE: sqlite3
+      DB_URL: 10.244.0.30
+      DB_USER: rds
+      ENC_KEY: "12345678901234567890123456789012"

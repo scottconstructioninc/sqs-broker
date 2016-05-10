@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/cf-platform-eng/sqs-broker/rdsbroker"
 	"github.com/cf-platform-eng/sqs-broker/sqsbroker"
 )
 
@@ -14,7 +15,9 @@ type Config struct {
 	LogLevel  string           `json:"log_level"`
 	Username  string           `json:"username"`
 	Password  string           `json:"password"`
+	Region    string           `json:"region"`
 	SQSConfig sqsbroker.Config `json:"sqs_config"`
+	RDSConfig rdsbroker.Config `json:"rds_config"`
 }
 
 func LoadConfig(configFile string) (config *Config, err error) {
@@ -57,9 +60,17 @@ func (c Config) Validate() error {
 		return errors.New("Must provide a non-empty Password")
 	}
 
+	if c.Region == "" {
+		return errors.New("Must provide a non-empty Region")
+	}
+
 	if err := c.SQSConfig.Validate(); err != nil {
 		return fmt.Errorf("Validating SQS configuration: %s", err)
 	}
+
+	//if err := c.RDSConfig.Validate(); err != nil {
+	//		return fmt.Errorf("Validating SQS configuration: %s", err)
+	//}
 
 	return nil
 }
