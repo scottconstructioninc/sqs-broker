@@ -28,6 +28,11 @@
       ],
       "Effect": "Allow",
       "Resource": "*"
+    },
+    {
+      "Action": "rds:CreateDBInstance",
+      "Effect": "Allow",
+      "Resource":"*"
     }
   ]
 }

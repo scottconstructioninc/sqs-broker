@@ -45,6 +45,17 @@ func New(
 	}
 }
 
+func (b *SQSBroker) ServicesAsString() string {
+	catalog, err := json.Marshal(b.catalog.Services)
+
+	if err != nil {
+		b.logger.Error("marshal-error", err)
+		return ""
+	}
+
+	return string(catalog)
+}
+
 func (b *SQSBroker) Services() brokerapi.CatalogResponse {
 	catalogResponse := brokerapi.CatalogResponse{}
 
